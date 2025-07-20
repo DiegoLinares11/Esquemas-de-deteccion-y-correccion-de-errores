@@ -1,6 +1,6 @@
 ### Correcion de errores 
 
-Emisor
+#### Emisor
 
 El emisor toma como entrada un mensaje binario de 7 bits ingresado por el usuario, por ejemplo:
 ```bash
@@ -16,3 +16,21 @@ Por ejemplo, para el mensaje 1100110, el emisor genera la trama codificada:
 10111000110
 ```
 Que contiene los datos originales más los bits de paridad calculados.
+
+#### Receptor
+
+El receptor toma como entrada una trama binaria de 11 bits (generada por el emisor), por ejemplo:
+```bash
+10111000111
+```
+Notar que aca se metio un error en la posicion 11 a proposito para que lo corrija.
+
+El receptor:
+1. Calcula nuevamente las paridades y genera un síndrome, que indica la posición del bit erróneo (si hay uno).
+2. Si el síndrome indica una posición válida (1–11), el receptor corrige el bit en esa posición.
+3. Extrae los 7 bits de datos originales y los muestra.
+
+En el ejemplo anterior, el receptor detecta un error en la posición 11, lo corrige y recupera los datos originales:
+```bash
+1100110
+```
