@@ -34,3 +34,35 @@ En el ejemplo anterior, el receptor detecta un error en la posición 11, lo corr
 ```bash
 1100110
 ```
+
+
+# Fletcher Checksum: Emisor y Receptor
+
+- Un **emisor en Python**
+- Un **receptor en Java**
+
+---
+
+## ¿Qué hace el algoritmo?
+
+El algoritmo **Fletcher** calcula dos sumas acumulativas (`sum1` y `sum2`) sobre bloques binarios (de 8, 16 o 32 bits), y las adjunta como **checksum**.  
+El receptor recalcula el mismo proceso y lo compara con el checksum recibido para **detectar errores de transmisión**.
+
+---
+
+## ¿Qué incluye esta implementación?
+
+### Emisor (Python):
+- Ingresa una cadena binaria.
+- Ajusta el padding si es necesario.
+- Divide en bloques de tamaño fijo.
+- Calcula `sum1` y `sum2`, genera el checksum y concatena la trama completa.
+- Muestra el proceso paso a paso.
+
+### Receptor (Java):
+- Recibe la trama con checksum.
+- Extrae los datos originales.
+- Recalcula el checksum.
+- Verifica si coincide con el recibido y muestra si hubo error o no.
+
+---
