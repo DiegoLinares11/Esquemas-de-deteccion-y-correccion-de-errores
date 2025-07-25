@@ -54,7 +54,7 @@ public class EmisorHamming {
             }
 
             String bloqueCodificado = codificarBloque(bloque);
-            System.out.println("Bloque original: " + bloque + " → Codificado: " + bloqueCodificado);
+            System.out.println("Bloque original: " + bloque + " -> Codificado: " + bloqueCodificado);
         }
     }
 }

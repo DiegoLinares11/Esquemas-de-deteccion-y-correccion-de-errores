@@ -1,3 +1,4 @@
+import java.io.*;
 import java.util.*;
 
 public class Main {
@@ -25,53 +26,90 @@ public class Main {
         return ruidoso.toString();
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException, InterruptedException {
         Scanner sc = new Scanner(System.in);
 
-        // CAPA APLICACIÓN
+        // ─── CAPA APLICACIÓN ──────────────────────────────
         System.out.println(" CAPA APLICACION");
         System.out.print("Ingrese el mensaje a enviar: ");
         String mensaje = sc.nextLine();
 
-        // CAPA PRESENTACIÓN
+        // ─── CAPA PRESENTACIÓN ────────────────────────────
         System.out.println("\n CAPA PRESENTACION");
         String binario = textoABinario(mensaje);
         System.out.println("Texto en ASCII binario: " + binario);
 
-        // Agrupar en bloques de 7 bits
-        List<String> bloques7 = new ArrayList<>();
-        for (int i = 0; i < binario.length(); i += 7) {
-            String bloque = binario.substring(i, Math.min(i + 7, binario.length()));
-            if (bloque.length() < 7) {
-                bloque = String.format("%-7s", bloque).replace(' ', '0'); // rellenar con ceros
+        // ─── CAPA ENLACE ─────────────────────────────────
+        System.out.println("\n CAPA ENLACE");
+        System.out.println("Seleccione el tipo de transmisión:");
+        System.out.println("1. Corrección de errores (Hamming 11,7)");
+        System.out.println("2. Detección de errores (Fletcher Checksum en Python)");
+        System.out.print("Opción: ");
+        int opcion = sc.nextInt();
+        sc.nextLine(); // limpiar buffer
+
+        String tramaCodificada = "";
+
+        if (opcion == 1) {
+            // Hamming
+            List<String> bloques7 = new ArrayList<>();
+            for (int i = 0; i < binario.length(); i += 7) {
+                String bloque = binario.substring(i, Math.min(i + 7, binario.length()));
+                if (bloque.length() < 7) {
+                    bloque = String.format("%-7s", bloque).replace(' ', '0');
+                }
+                bloques7.add(bloque);
             }
-            bloques7.add(bloque);
+
+            System.out.println("\n[ENLACE] Hamming 11,7:");
+            List<String> codificados = new ArrayList<>();
+            for (String bloque : bloques7) {
+                String codificado = EmisorHamming.codificarBloque(bloque);
+                System.out.println("Bloque 7 bits: " + bloque + " → Codificado (11 bits): " + codificado);
+                codificados.add(codificado);
+            }
+
+            StringBuilder sb = new StringBuilder();
+            for (String bloque : codificados) {
+                sb.append(bloque);
+            }
+            tramaCodificada = sb.toString();
+
+        } else if (opcion == 2) {
+            // Ejecutar emisor.py desde Java
+            System.out.println("\n[ENLACE] Ejecutando emisor.py (Fletcher Checksum):");
+
+            ProcessBuilder pb = new ProcessBuilder("python", "deteccion/emisor.py");
+            pb.redirectInput(ProcessBuilder.Redirect.INHERIT);
+            pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+            pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+
+            Process proceso = pb.start();
+            proceso.waitFor();
+
+            System.out.println("[Python finalizado]");
+
+            System.out.println("NOTA: Este flujo es externo, la trama binaria con checksum se muestra en el script.");
+            System.out.print("¿Desea continuar con la capa de ruido? (s/n): ");
+            if (!sc.nextLine().trim().toLowerCase().equals("s")) {
+                System.out.println("Finalizando...");
+                return;
+            }
+
+            System.out.print("Pegue aquí la trama resultante del emisor.py: ");
+            tramaCodificada = sc.nextLine().trim();
+        } else {
+            System.out.println("Opción no válida.");
+            return;
         }
 
-        // CAPA ENLACE: aplicar Hamming a cada bloque
-        System.out.println("\nCAPA ENLACE (Hamming 11,7)");
-        List<String> bloquesCodificados = new ArrayList<>();
-        for (String bloque : bloques7) {
-            String codificado = EmisorHamming.codificarBloque(bloque);
-            System.out.println("Bloque 7 bits: " + bloque + " → Codificado (11 bits): " + codificado);
-            bloquesCodificados.add(codificado);
-        }
-
-        // Unir todos los bloques codificados
-        StringBuilder tramaTotal = new StringBuilder();
-        for (String codificado : bloquesCodificados) {
-            tramaTotal.append(codificado);
-        }
-
-        // CAPA RUIDO: aplicar probabilidad de error
+        // ─── CAPA RUIDO ─────────────────────────────────
         System.out.println("\n CAPA RUIDO");
         System.out.print("Ingrese probabilidad de error por bit (ej. 0.01): ");
         double probabilidadError = sc.nextDouble();
 
-        String tramaConRuido = aplicarRuido(tramaTotal.toString(), probabilidadError);
-        System.out.println("Trama original:      " + tramaTotal);
+        String tramaConRuido = aplicarRuido(tramaCodificada, probabilidadError);
+        System.out.println("Trama original:      " + tramaCodificada);
         System.out.println("Trama con ruido:     " + tramaConRuido);
-
-        // Aqui es lo que se va a implementar despuesss.
     }
 }
