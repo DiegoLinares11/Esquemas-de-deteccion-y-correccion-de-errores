@@ -111,5 +111,24 @@ public class Main {
         String tramaConRuido = aplicarRuido(tramaCodificada, probabilidadError);
         System.out.println("Trama original:      " + tramaCodificada);
         System.out.println("Trama con ruido:     " + tramaConRuido);
+
+        // ─── CAPA TRANSMISION ─────────────────────────────────
+        System.out.println("\n CAPA TRANSMISION");
+        System.out.print("Ingrese el puerto para transmisión (ej. 6543): ");
+        int puerto = sc.nextInt();
+
+        try (java.net.Socket socket = new java.net.Socket("127.0.0.1", puerto);
+                OutputStream out = socket.getOutputStream()) {
+
+            // Agregamos un prefijo para que el receptor sepa que es Hamming
+            String payload = "HAM:" + tramaConRuido;
+            out.write(payload.getBytes());
+            out.flush();
+
+            System.out.println(" Trama enviada al receptor Python.");
+        } catch (IOException e) {
+            System.err.println(" Error al enviar la trama: " + e.getMessage());
+        }
+
     }
 }
