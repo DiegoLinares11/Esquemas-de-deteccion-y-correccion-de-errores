@@ -7,7 +7,7 @@ def fletcher_checksum_emisor(trama_binaria: str, bloque_bits: int = 8) -> str:
         for i in range(0, len(trama_binaria), bloque_bits)
     ]
 
-    modulo = 255
+    modulo = (2 ** bloque_bits) - 1
     sum1 = 0
     sum2 = 0
 
