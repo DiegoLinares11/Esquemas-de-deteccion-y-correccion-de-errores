@@ -1,6 +1,6 @@
 import java.util.Scanner;
 
-public class EmisorHamming {
+public class emisorHamming {
 
     public static String codificarBloque(String bloque7) {
         int[] bits = new int[12]; // posición 0 no se usa

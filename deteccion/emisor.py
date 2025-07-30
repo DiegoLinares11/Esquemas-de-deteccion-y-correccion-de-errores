@@ -1,12 +1,17 @@
+import sys
+
 def fletcher_checksum_emisor(trama_binaria: str, bloque_bits: int = 8) -> str:
+    # Padding automático
     while len(trama_binaria) % bloque_bits != 0:
         trama_binaria += '0'
 
+    # Dividir en bloques binarios y convertir a decimal
     bloques = [
         int(trama_binaria[i:i + bloque_bits], 2)
         for i in range(0, len(trama_binaria), bloque_bits)
     ]
 
+    # Ajuste dinámico del módulo según bloque
     modulo = (2 ** bloque_bits) - 1
     sum1 = 0
     sum2 = 0
@@ -15,14 +20,14 @@ def fletcher_checksum_emisor(trama_binaria: str, bloque_bits: int = 8) -> str:
         sum1 = (sum1 + byte) % modulo
         sum2 = (sum2 + sum1) % modulo
 
+    # Checksum final en binario
     checksum_bin = format(sum1, f'0{bloque_bits}b') + format(sum2, f'0{bloque_bits}b')
     trama_con_checksum = trama_binaria + checksum_bin
 
-    print(f"\nTrama original (con padding si aplica): {trama_binaria}")
-    print(f"Checksum binario: {checksum_bin}")
-    print(f"Trama a enviar: {trama_con_checksum}\n")
-    print("\nBloques de datos en decimal:", bloques)
+    # Salida formateada como en el emisorHamming.java
+    print("\n=== Emisor Fletcher Checksum ===")
     print(f"sum1: {sum1} | sum2: {sum2}")
+    print(f"Trama con checksum final: {trama_con_checksum}")
 
     return trama_con_checksum
 
@@ -32,27 +37,33 @@ def es_binario(cadena: str) -> bool:
 
 
 if __name__ == "__main__":
-    print("=== Emisor Fletcher Checksum ===")
-    while True:
-        trama = input("Ingrese la trama binaria a enviar: ")
-        if not es_binario(trama):
-            print("Error: la trama solo puede contener 0s y 1s.\n")
-            continue
+    if len(sys.argv) < 2:
+        print("Error: no se proporcionó la trama binaria desde Java.")
+        sys.exit(1)
 
-        try:
-            bloque = int(input("Tamaño del bloque (8, 16 o 32): "))
-            if bloque not in (8, 16, 32):
-                print("Error: tamaño de bloque no válido. Solo se permiten 8, 16 o 32.\n")
-                continue
-        except ValueError:
-            print("Error: ingrese un número entero para el tamaño de bloque.\n")
-            continue
+    trama = sys.argv[1]
 
-        # Si ambas entradas son válidas, calcular y mostrar resultado
-        fletcher_checksum_emisor(trama, bloque)
+    if not es_binario(trama):
+        print("Error: la trama solo puede contener 0s y 1s.")
+        sys.exit(1)
 
-        # Preguntar si desea enviar otra trama
-        otra = input("¿Desea enviar otra trama? (s/n): ").strip().lower()
-        if otra != 's':
-            print("Finalizando emisor.")
-            break
+    print("Seleccione el tamaño del bloque:")
+    print("1. 8 bits")
+    print("2. 16 bits")
+    print("3. 32 bits")
+    print("Opcion (1/2/3): ")
+    opcion = input("").strip()
+
+    if opcion == "1":
+        bloque = 8
+    elif opcion == "2":
+        bloque = 16
+    elif opcion == "3":
+        bloque = 32
+    else:
+        print("Opcion invalida. Finalizando.")
+        sys.exit(1)
+        
+    print(f"Bloque usado: {bloque} bits")
+
+    fletcher_checksum_emisor(trama, bloque)

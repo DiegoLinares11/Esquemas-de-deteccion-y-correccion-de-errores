@@ -1,4 +1,5 @@
-import java.util.Scanner;
+import java.io.*;
+import java.net.*;
 
 public class receptor {
 
@@ -27,7 +28,7 @@ public class receptor {
             bloques[i] = Integer.parseInt(bloque, 2);
         }
 
-        int modulo = 255;
+        int modulo = (int) Math.pow(2, bloqueBits) - 1;
         int sum1 = 0, sum2 = 0;
         for (int val : bloques) {
             sum1 = (sum1 + val) % modulo;
@@ -49,43 +50,53 @@ public class receptor {
     }
 
     public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        System.out.println("=== Receptor Fletcher Checksum ===\n");
+    System.out.println("=== Receptor Fletcher Checksum ===\n");
 
-        while (true) {
-            System.out.print("Ingrese la trama recibida (solo 0s y 1s): ");
-            String trama = sc.nextLine().trim();
+    try (ServerSocket serverSocket = new ServerSocket(6544)) {
+        System.out.println("Esperando mensaje a puerto 6544...");
+
+        try (Socket socket = serverSocket.accept()) {
+            System.out.println("Conexión recibida de " + socket.getInetAddress());
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            String recibido = reader.readLine();
+
+            if (recibido == null || !recibido.startsWith("FLE:")) {
+                System.out.println("Trama no reconocida o sin prefijo FLE:");
+                return;
+            }
+
+            String[] partes = recibido.split(":", 3); // FLE:bloqueBits:trama
+
+            if (partes.length != 3) {
+                System.out.println("Error: formato de trama no válido.");
+                return;
+            }
+
+            int bloqueBits;
+            String trama;
+
+            try {
+                bloqueBits = Integer.parseInt(partes[1].trim());
+                trama = partes[2].trim();
+            } catch (NumberFormatException e) {
+                System.out.println("Error: el valor del bloque recibido no es válido.");
+                return;
+            }
+
+            System.out.println("Bloque de verificación recibido: " + bloqueBits + " bits");
 
             if (!esBinario(trama)) {
-                System.out.println("Error: la trama solo puede contener 0s y 1s.\n");
-                continue;
+                System.out.println("Error: la trama contiene caracteres no binarios.");
+                return;
             }
 
-            System.out.print("Tamaño del bloque (8, 16 o 32): ");
-            int bloque;
-            try {
-                bloque = Integer.parseInt(sc.nextLine());
-                if (bloque != 8 && bloque != 16 && bloque != 32) {
-                    System.out.println("Error: solo se permiten tamaños de bloque 8, 16 o 32.\n");
-                    continue;
-                }
-            } catch (NumberFormatException e) {
-                System.out.println("Error: debe ingresar un número entero.\n");
-                continue;
-            }
-
-            verificarTrama(trama, bloque);
-
-            System.out.print("\n¿Desea verificar otra trama? (s/n): ");
-            String respuesta = sc.nextLine().trim().toLowerCase();
-            if (!respuesta.equals("s")) {
-                System.out.println("Finalizando receptor.");
-                break;
-            }
-
-            System.out.println();
+            verificarTrama(trama, bloqueBits);
         }
 
-        sc.close();
+    } catch (IOException e) {
+        System.err.println("Error en el servidor receptor: " + e.getMessage());
     }
+}
+
 }

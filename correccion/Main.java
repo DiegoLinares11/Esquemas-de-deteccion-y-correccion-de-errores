@@ -49,6 +49,7 @@ public class Main {
         sc.nextLine(); // limpiar buffer
 
         String tramaCodificada = "";
+        int bloqueBits = -1;
 
         if (opcion == 1) {
             // Hamming
@@ -64,7 +65,7 @@ public class Main {
             System.out.println("\n[ENLACE] Hamming 11,7:");
             List<String> codificados = new ArrayList<>();
             for (String bloque : bloques7) {
-                String codificado = EmisorHamming.codificarBloque(bloque);
+                String codificado = emisorHamming.codificarBloque(bloque);
                 System.out.println("Bloque 7 bits: " + bloque + " → Codificado (11 bits): " + codificado);
                 codificados.add(codificado);
             }
@@ -79,26 +80,49 @@ public class Main {
             // Ejecutar emisor.py desde Java
             System.out.println("\n[ENLACE] Ejecutando emisor.py (Fletcher Checksum):");
 
-            ProcessBuilder pb = new ProcessBuilder("python", "deteccion/emisor.py");
+            // Ejecutar el script con la trama binaria como argumento
+            ProcessBuilder pb = new ProcessBuilder("py", "../deteccion/emisor.py", binario.toString());
             pb.redirectInput(ProcessBuilder.Redirect.INHERIT);
-            pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-            pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+            pb.redirectErrorStream(true);                         
 
             Process proceso = pb.start();
+
+            // Capturar y leer la salida del script
+            BufferedReader reader = new BufferedReader(new InputStreamReader(proceso.getInputStream()));
+            String linea;
+            tramaCodificada = null;
+
+            while ((linea = reader.readLine()) != null) {
+                System.out.println(linea);  
+
+                if (linea.startsWith("Trama con checksum final: ")) {
+                    tramaCodificada = linea.replace("Trama con checksum final: ", "").trim();
+                }
+
+                if (linea.startsWith("Bloque usado: ")) {  
+                    try {
+                        String valor = linea.replace("Bloque usado: ", "").replace(" bits", "").trim();
+                        bloqueBits = Integer.parseInt(valor);
+                        System.out.println("bloqueBits");
+                    } catch (NumberFormatException e) {
+                        System.out.println("Error al interpretar el bloque desde la salida del emisor.");
+                        return;
+                    }
+                }
+            }
+
             proceso.waitFor();
 
             System.out.println("[Python finalizado]");
 
-            System.out.println("NOTA: Este flujo es externo, la trama binaria con checksum se muestra en el script.");
-            System.out.print("¿Desea continuar con la capa de ruido? (s/n): ");
-            if (!sc.nextLine().trim().toLowerCase().equals("s")) {
-                System.out.println("Finalizando...");
+            if (tramaCodificada == null || bloqueBits == -1) {
+                System.out.println("Error: no se pudo capturar la trama codificada o el bloque desde emisor.py.");
                 return;
             }
 
-            System.out.print("Pegue aquí la trama resultante del emisor.py: ");
-            tramaCodificada = sc.nextLine().trim();
-        } else {
+            System.out.println("Trama capturada desde emisor.py: " + tramaCodificada);
+            System.out.println("Bloque capturado desde emisor.py: " + bloqueBits + " bits"); // 🆕 Confirmación
+        }else {
             System.out.println("Opción no válida.");
             return;
         }
@@ -114,21 +138,32 @@ public class Main {
 
         // ─── CAPA TRANSMISION ─────────────────────────────────
         System.out.println("\n CAPA TRANSMISION");
-        System.out.print("Ingrese el puerto para transmisión (ej. 6543): ");
-        int puerto = sc.nextInt();
+
+        int puerto;
+        String payload;
+
+        if (opcion == 1) {
+            puerto = 6543;
+            payload = "HAM:" + tramaConRuido;
+        } else if (opcion == 2) {
+            puerto = 6544;
+            payload = "FLE:" + bloqueBits + ":" + tramaConRuido;
+        } else {
+            System.out.println("Error: opción no válida para transmisión.");
+            return;
+        }
 
         try (java.net.Socket socket = new java.net.Socket("127.0.0.1", puerto);
-                OutputStream out = socket.getOutputStream()) {
-
-            // Agregamos un prefijo para que el receptor sepa que es Hamming
-            String payload = "HAM:" + tramaConRuido;
+            OutputStream out = socket.getOutputStream()) {
+            
             out.write(payload.getBytes());
             out.flush();
 
-            System.out.println(" Trama enviada al receptor Python.");
+            System.out.println(" Trama enviada al receptor en el puerto " + puerto + ".");
         } catch (IOException e) {
             System.err.println(" Error al enviar la trama: " + e.getMessage());
         }
+
 
     }
 }
